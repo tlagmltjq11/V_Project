@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ReturnHitHole : MonoBehaviour
 {
-    public bool m_temp = false;
+    public bool m_ifFirstEnable = true;
 
     // Start is called before the first frame update
     void Start()
@@ -14,22 +14,17 @@ public class ReturnHitHole : MonoBehaviour
 
     private void OnEnable()
     {
-        if (m_temp)
+        if (!m_ifFirstEnable)
         {
             Invoke("ReturnToPool", 5f);
         }
 
-        m_temp = true;
+        m_ifFirstEnable = false;
     }
 
-    // Update is called once per frame
-    void Update()
+    public void ReturnToPool()
     {
-        
-    }
-
-    void ReturnToPool()
-    {
+        gameObject.transform.SetParent(GameObject.Find("GunEffectObjPoolManager").transform);
         GunEffectObjPool.Instance.m_hitHoleObjPool.Set(this);
         gameObject.SetActive(false);
     }

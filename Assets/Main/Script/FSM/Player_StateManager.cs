@@ -12,15 +12,21 @@ public class Player_StateManager : FSM<Player_StateManager>
     public CharacterController m_charCon;
     public Vector3 m_moveDir = Vector3.zero;
     public Animator m_animator;
-    public float m_runSpeed = 3f;
+    public float m_runSpeed = 5f;
     public float m_walkSpeed = 1.5f;
-    public float m_crouchSpeed = 1.5f;
+    public float m_crouchSpeed = 2.5f;
+    public float m_normalSpeed = 3.5f;
     public float m_horiz = 0f;
     public float m_vert = 0f;
     public float m_diagonalSpeedModifier;
 
+    public float m_crouchHeight = 1.3f;
+    public float m_playerHeight = 1.75f;
+
     [SerializeField]
     public Transform m_groundCheck;
+    public Vector3 m_crouchCheckPos;
+    public Vector3 m_normalCheckPos;
     public Vector3 m_velocity;
     public float m_groundDistance = 0.2f;
     public float m_gravity = -21f;
@@ -30,6 +36,9 @@ public class Player_StateManager : FSM<Player_StateManager>
     public bool m_isGrounded;
     public bool m_isCrouching;
     public bool m_isWalking;
+    public bool m_isRunning;
+    public bool m_crouchAccuracyApply;
+    public bool m_jumpAccruacyApply;
 
     public Weapon m_currentWeapon;
 
@@ -37,8 +46,34 @@ public class Player_StateManager : FSM<Player_StateManager>
     public Text m_bulletText;
     [SerializeField]
     public Text m_curWeaponText;
-    #endregion
+    [SerializeField]
+    public GameObject m_crossHair;
 
+    [SerializeField]
+    public AudioClip[] m_audioClip;
+    public AudioSource m_audioSource;
+
+    public enum eAudioClip
+    {
+        STEP1,
+        STEP2,
+        JUMP,
+        LAND,
+        Max
+    }
+
+    public float m_footstepTimer;
+    public float m_footstepCycle;
+    public bool m_PreviouslyGrounded;
+
+    //움직일때 총 좌우로 흔들리는것.
+    public float m_gunMoveSpeed;
+
+    #endregion
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawSphere(m_groundCheck.position, m_groundDistance);
+    }
     public void SetCurrentWeapon(Weapon weapon)
     {
         m_currentWeapon = weapon;
@@ -61,7 +96,7 @@ public class Player_StateManager : FSM<Player_StateManager>
             //Fire Attack에 관련된 부분들.
             if (Input.GetButton("Fire1"))
             {
-                if (m_currentWeapon.m_currentBullets > 0 && !m_currentWeapon.m_isReloading)
+                if (m_currentWeapon.m_currentBullets > 0 && !m_currentWeapon.m_isReloading && !m_isRunning)
                 {
                     m_currentWeapon.m_isFiring = true;
                     m_currentWeapon.Fire();
@@ -69,22 +104,24 @@ public class Player_StateManager : FSM<Player_StateManager>
                 }
             }
            
-            if(Input.GetButtonUp("Fire1"))
+            if(Input.GetButtonUp("Fire1") && !m_isRunning)
             {
                 m_currentWeapon.m_isFiring = false;
                 m_currentWeapon.StopFiring();
             }
 
-            if(Input.GetButtonDown("Fire2") && !m_currentWeapon.m_isReloading && !m_currentWeapon.m_isAiming)
+            if(Input.GetButtonDown("Fire2") && !m_currentWeapon.m_isReloading && !m_currentWeapon.m_isAiming && !m_isRunning)
             {
                 m_currentWeapon.AimIn();
+                m_crossHair.SetActive(false);
             }
-            else if(Input.GetButtonDown("Fire2") && !m_currentWeapon.m_isReloading && m_currentWeapon.m_isAiming)
+            else if(Input.GetButtonDown("Fire2") && !m_currentWeapon.m_isReloading && m_currentWeapon.m_isAiming && !m_isRunning)
             {
                 m_currentWeapon.AimOut();
+                m_crossHair.SetActive(true);
             }
 
-            if(Input.GetKeyDown(KeyCode.R) && !m_currentWeapon.m_isReloading)
+            if(Input.GetKeyDown(KeyCode.R) && !m_currentWeapon.m_isReloading && !m_isRunning)
             {
                 if(m_currentWeapon.m_isAiming && m_currentWeapon.m_currentBullets != m_currentWeapon.m_bulletsPerMag)
                 {
@@ -108,6 +145,10 @@ public class Player_StateManager : FSM<Player_StateManager>
         m_isGrounded = false;
         m_isCrouching = false;
         m_isWalking = false;
+        m_crouchCheckPos = m_groundCheck.localPosition + new Vector3(0f, 0.2f, 0f);
+        m_normalCheckPos = m_groundCheck.localPosition;
+        m_crouchAccuracyApply = false;
+        m_jumpAccruacyApply = false;
 
         //나중에 없애야할 코드들
         m_currentWeapon = GameObject.FindGameObjectWithTag("Weapon").GetComponent<Weapon>();

@@ -16,15 +16,6 @@ public class GunEffectObjPool : SingletonMonoBehaviour<GunEffectObjPool>
 
     protected override void OnStart()
     {
-        m_hitHoleObjPool = new GameObjectPool<ReturnHitHole>(40, () =>
-		{
-			var obj = Instantiate(m_hitHolePrefab) as GameObject;
-            obj.transform.SetParent(gameObject.transform);
-            var script =  obj.GetComponent<ReturnHitHole>();
-
-			return script;
-		});
-
         m_hitSparkPool = new GameObjectPool<ReturnHitSpark>(30, () =>
         {
             var obj = Instantiate(m_hitSparkPrefab) as GameObject;
@@ -33,6 +24,15 @@ public class GunEffectObjPool : SingletonMonoBehaviour<GunEffectObjPool>
 
             return script;
         });
+
+        m_hitHoleObjPool = new GameObjectPool<ReturnHitHole>(40, () =>
+		{
+			var obj = Instantiate(m_hitHolePrefab) as GameObject;
+            obj.transform.SetParent(gameObject.transform);
+            var script =  obj.GetComponent<ReturnHitHole>();
+
+			return script;
+		});
 
         m_casingPool = new GameObjectPool<ReturnCasing>(30, () =>
         {
@@ -46,10 +46,5 @@ public class GunEffectObjPool : SingletonMonoBehaviour<GunEffectObjPool>
 
             return script;
         });
-    }
-
-    private void Update()
-    {
-        
     }
 }

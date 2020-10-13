@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6059860399596334675}
   - component: {fileID: -2361087912738482565}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: HitHole
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -44,6 +44,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f8b300c42cd92341bdccf3ec4c79e8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_temp: 0
+  m_remove: 0
+  m_target: {fileID: 0}
 --- !u!1 &6700163780560950074
 GameObject:
   m_ObjectHideFlags: 0
@@ -56,7 +59,7 @@ GameObject:
   - component: {fileID: 6700163780560950071}
   - component: {fileID: 6700163780560950068}
   - component: {fileID: 6700163780560950069}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Quad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133,7 +136,7 @@ MeshCollider:
   m_GameObject: {fileID: 6700163780560950074}
   m_Material: {fileID: 0}
   m_IsTrigger: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 4
   m_Convex: 0
   m_CookingOptions: 30

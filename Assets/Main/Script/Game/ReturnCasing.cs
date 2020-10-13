@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ReturnCasing : MonoBehaviour
 {
-    public bool m_temp = false;
+    public bool m_ifFirstEnable = true;
 
     // Start is called before the first frame update
     void Start()
@@ -14,21 +14,15 @@ public class ReturnCasing : MonoBehaviour
 
     private void OnEnable()
     {
-        if (m_temp)
+        if (!m_ifFirstEnable)
         {
             Invoke("ReturnToPool", 1f);
         }
 
-        m_temp = true;
+        m_ifFirstEnable = false;
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
-
-    void ReturnToPool()
+    public void ReturnToPool()
     {
         gameObject.transform.localPosition = new Vector3(-1f, -3.5f, 0f);
         gameObject.transform.localRotation = Quaternion.identity;

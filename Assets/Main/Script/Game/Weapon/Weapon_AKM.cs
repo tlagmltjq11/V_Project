@@ -30,22 +30,6 @@ public class Weapon_AKM : Weapon
 		m_stateManager = m_player.GetComponent<Player_StateManager>();
 		m_cameraRotate = m_camera.GetComponent<CameraRotate>();
 		Init();
-
-		/*
-		m_hitSparkObjPool = new GameObjectPool<GameObject>(20, () =>
-		{
-			var obj = Instantiate(m_hitSparkPrefab) as GameObject;
-			obj.SetActive(false);
-			return obj;
-		});
-
-		m_casingObjPool = new GameObjectPool<GameObject>(40, () =>
-		{
-			var obj = Instantiate(m_casing) as GameObject;
-			obj.SetActive(false);
-			return obj;
-		});
-		*/
 	}
 
     // Update is called once per frame
@@ -56,12 +40,20 @@ public class Weapon_AKM : Weapon
 
         if (m_isAiming)
         {
-			transform.localPosition = Vector3.Lerp(transform.localPosition, m_aimPosition, Time.deltaTime * 8f);
-            m_camera.fieldOfView = Mathf.Lerp(m_camera.fieldOfView, 40f, Time.deltaTime * 8f);
+			if(m_isSightAttached)
+            {
+				transform.localPosition = Vector3.Lerp(transform.localPosition, m_dotSightPosition, Time.deltaTime * 8f);
+				m_camera.fieldOfView = Mathf.Lerp(m_camera.fieldOfView, 40f, Time.deltaTime * 8f);
+			}
+			else
+            {
+				transform.localPosition = Vector3.Lerp(transform.localPosition, m_aimPosition, Time.deltaTime * 8f);
+				m_camera.fieldOfView = Mathf.Lerp(m_camera.fieldOfView, 40f, Time.deltaTime * 8f);
+			}
         }
         else
         {
-            transform.localPosition = Vector3.Lerp(transform.localPosition, m_originalPosition, Time.deltaTime * 5f);
+			transform.localPosition = Vector3.Lerp(transform.localPosition, m_originalPosition, Time.deltaTime * 6f);
             m_camera.fieldOfView = Mathf.Lerp(m_camera.fieldOfView, 60f, Time.deltaTime * 8f);
         }
 
@@ -83,6 +75,9 @@ public class Weapon_AKM : Weapon
 		m_recoilVert = 1.2f;
 		m_recoiltHoriz = 0.4f;
 		m_recoilKickBack = new Vector3(0.1f, 0.25f, -0.5f);
+		m_originAccuracy = 0.015f;
+		m_accuracy = m_originAccuracy;
+		m_power = 25f;
 
 		m_isFiring = false;
 
@@ -104,15 +99,18 @@ public class Weapon_AKM : Weapon
 			m_recoiltHoriz += 0.05f;
 			m_recoiltHoriz = Mathf.Clamp(m_recoiltHoriz, 0.4f, 0.8f);
         }
-		
-		RaycastHit hit;
-		if (Physics.Raycast(m_shootPoint.position, m_shootPoint.transform.forward, out hit, m_range, (-1) -  (1 << LayerMask.NameToLayer("Player"))))
-		{
-			//Debug.DrawRay(m_shootPoint.position, m_shootPoint.transform.forward, Color.green, 1f);
 
+		RaycastHit hit;
+
+		int layerMask = ((1 << LayerMask.NameToLayer("Player")) | (1 << LayerMask.NameToLayer("Sfx")));
+		layerMask = ~layerMask;
+
+		if (Physics.Raycast(m_shootPoint.position, m_shootPoint.transform.forward + Random.onUnitSphere * m_accuracy, out hit, m_range, layerMask))
+		{
 			var hitHole = GunEffectObjPool.Instance.m_hitHoleObjPool.Get();
 			hitHole.gameObject.transform.position = hit.point;
 			hitHole.gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
+			hitHole.transform.SetParent(hit.transform); // 탄흔이 오브젝트를 따라가게끔 유도하기 위해 리턴되기 전까지만 부모로 지정
 			hitHole.gameObject.SetActive(true);
 
 			var hitSpark = GunEffectObjPool.Instance.m_hitSparkPool.Get();
@@ -120,13 +118,24 @@ public class Weapon_AKM : Weapon
 			hitSpark.gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
 			hitSpark.gameObject.SetActive(true);
 
-			/*
-			var hitHole = m_hitHoleObjPool.Get();
-			hitHole.transform.position = hit.point;
-			hitHole.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
-			hitHole.gameObject.SetActive(true);
-			StartCoroutine(RemoveObjPool_Obj(m_hitHoleObjPool, hitHole, 5f));*/
+			if (hit.transform.gameObject.layer.Equals(LayerMask.NameToLayer("Interactable")))
+            {
+				Rigidbody rig = hit.transform.GetComponent<Rigidbody>();
+				
+				if(rig)
+                {
+					rig.AddForceAtPosition(m_shootPoint.forward * m_power * 5f, m_shootPoint.position);
+				}					
+            }
+
+			HealthController enemy = hit.transform.GetComponent<HealthController>();
+
+			if(enemy)
+            {
+				enemy.Damaged(m_power);
+			}
 		}
+
 		m_currentBullets--;
 		m_fireTimer = 0.0f;
 		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.FIRE]);
@@ -140,14 +149,77 @@ public class Weapon_AKM : Weapon
     public override void AimIn()
 	{
 		m_anim.SetBool("ISAIM", true);
+
+		if (m_attachedSight.activeSelf)
+		{
+			m_isSightAttached = true;
+		}
+		else
+		{
+			m_isSightAttached = false;
+		}
+
 		m_isAiming = true;
+
+		m_accuracy = m_accuracy / 4f;
 	}
 
 	public override void AimOut()
 	{
 		m_isAiming = false;
 		m_anim.SetBool("ISAIM", false);
+
+		if(m_stateManager.m_isCrouching)
+        {
+			m_accuracy = m_originAccuracy / 2f;
+        }
+		else if(!m_stateManager.m_isGrounded)
+        {
+			m_accuracy = m_originAccuracy * 5f;
+        }
+		else
+        {
+			m_accuracy = m_originAccuracy;
+		}
 	}
+
+	public override void JumpAccuracy(bool j)
+    {
+		if(j)
+        {
+			m_accuracy = m_accuracy * 5f;
+        }
+		else
+        {
+			if(m_isAiming)
+            {
+				m_accuracy = m_originAccuracy / 4f;
+            }
+			else
+            {
+				m_accuracy = m_originAccuracy;
+            }
+        }
+    }
+
+	public override void CrouchAccuracy(bool c)
+    {
+		if (c)
+        {
+			m_accuracy = m_accuracy / 2f;
+        }
+		else
+        {
+			if (m_isAiming)
+			{
+				m_accuracy = m_originAccuracy / 4f;
+			}
+			else
+			{
+				m_accuracy = m_originAccuracy;
+			}
+		}
+    }
 
     public override void Reload()
     {
@@ -182,30 +254,22 @@ public class Weapon_AKM : Weapon
 
     public override void Recoil()
     {
-		if(!m_isAiming)
-        {
-			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x), m_recoilKickBack.y, m_recoilKickBack.z);
-			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
-		}
-		else
-        {
-			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x) / 2f, 0, m_recoilKickBack.z);
-			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
-		}
-
 		Vector3 HorizonCamRecoil = new Vector3(0f, Random.Range(-m_recoiltHoriz, m_recoiltHoriz), 0f);
 		Vector3 VerticalCamRecoil = new Vector3(-m_recoilVert, 0f, 0f);
 
-		//m_verticalCamRecoil.transform.localRotation = Quaternion.Slerp(m_verticalCamRecoil.transform.localRotation, Quaternion.Euler(m_verticalCamRecoil.transform.localEulerAngles + VerticalCamRecoil), m_recoilAmount);
-		//m_verticalCamRecoil.transform.localRotation = Quaternion.Slerp(m_verticalCamRecoil.transform.localRotation, Quaternion.Euler(m_verticalCamRecoil.transform.localEulerAngles - VerticalCamRecoil), m_recoilAmount / 2);
-
 		if (!m_isAiming)
-		{
+        {
+			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x), m_recoilKickBack.y, m_recoilKickBack.z);
+			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
+
 			m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(m_horizonCamRecoil.transform.localEulerAngles + HorizonCamRecoil), m_recoilAmount);
 			m_cameraRotate.VerticalCamRotate(-VerticalCamRecoil.x); //현재 이걸로 수직반동 올리는 중임.
 		}
 		else
         {
+			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x) / 2f, 0, m_recoilKickBack.z);
+			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
+
 			m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(m_horizonCamRecoil.transform.localEulerAngles + HorizonCamRecoil / 1.5f), m_recoilAmount);
 			m_cameraRotate.VerticalCamRotate(-VerticalCamRecoil.x / 2f); //현재 이걸로 수직반동 올리는 중임.
 		}
@@ -226,27 +290,9 @@ public class Weapon_AKM : Weapon
     {
 		Quaternion randomQuaternion = new Quaternion(Random.Range(0f, 360f), Random.Range(0f, 360f), Random.Range(0f, 360f), 1);
 		var casing = GunEffectObjPool.Instance.m_casingPool.Get();
-		//casing.gameObject.transform.localRotation = randomQuaternion;
 		casing.gameObject.GetComponent<Rigidbody>().isKinematic = false;
 		casing.gameObject.SetActive(true);
 		casing.gameObject.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(Random.Range(50f, 100f), Random.Range(50f, 100f), Random.Range(-10f, 20f)));
 		casing.gameObject.GetComponent<Rigidbody>().MoveRotation(randomQuaternion.normalized);
-		/*
-		Quaternion randomQuaternion = new Quaternion(Random.Range(0, 360f), Random.Range(0, 360f), Random.Range(0, 360f), 1);
-		var casing = m_casingObjPool.Get();
-		casing.transform.parent = m_casingPoint;
-		casing.transform.localRotation = randomQuaternion;
-		casing.gameObject.SetActive(true);
-		casing.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(Random.Range(50f, 80f), Random.Range(50f, 80f), Random.Range(-20f, 20f)));
-		StartCoroutine(RemoveObjPool_Obj(m_casingObjPool, casing, 1f));
-		*/
-	}
-
-	IEnumerator RemoveObjPool_Obj(GameObjectPool<GameObject> objPool, GameObject obj, float time)
-    {
-		yield return new WaitForSecondsRealtime(time);
-
-		obj.gameObject.SetActive(false);
-		objPool.Set(obj);
 	}
 }

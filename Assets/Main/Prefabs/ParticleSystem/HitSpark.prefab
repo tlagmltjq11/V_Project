@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 466203841938461971}
   - component: {fileID: 466203841938566323}
   - component: {fileID: 692006685558656522}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: HitSpark
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4697,6 +4697,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3fdaf0fba7527f4e856b772f2f70bb0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_temp: 0
+  m_remove: 0
 --- !u!1 &466203841919290483
 GameObject:
   m_ObjectHideFlags: 0
@@ -4708,7 +4710,7 @@ GameObject:
   - component: {fileID: 466203841919062099}
   - component: {fileID: 466203841938461973}
   - component: {fileID: 466203841938566325}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Smoke
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9537,7 +9539,7 @@ GameObject:
   - component: {fileID: 466203841919062103}
   - component: {fileID: 466203841938461975}
   - component: {fileID: 466203841938566327}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Sparks
   m_TagString: Untagged
   m_Icon: {fileID: 0}

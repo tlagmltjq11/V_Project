@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ReturnHitSpark : MonoBehaviour
 {
-    public bool m_temp = false;
+    public bool m_ifFirstEnable = true;
 
     // Start is called before the first frame update
     void Start()
@@ -14,21 +14,15 @@ public class ReturnHitSpark : MonoBehaviour
 
     private void OnEnable()
     {
-        if (m_temp)
+        if (!m_ifFirstEnable)
         {
             Invoke("ReturnToPool", 0.5f);
         }
 
-        m_temp = true;
+        m_ifFirstEnable = false;
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
-
-    void ReturnToPool()
+    public void ReturnToPool()
     {
         GunEffectObjPool.Instance.m_hitSparkPool.Set(this);
         gameObject.SetActive(false);

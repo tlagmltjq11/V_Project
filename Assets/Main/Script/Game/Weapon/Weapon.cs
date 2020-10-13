@@ -32,10 +32,12 @@ public abstract class Weapon : MonoBehaviour
 
 	public bool m_isReloading;
 	public bool m_isAiming;
+	public bool m_isAimOutOver;
 	public AnimatorStateInfo m_info;
 
 	//aim 만들때 사용
 	public Vector3 m_aimPosition;
+	public Vector3 m_dotSightPosition;
 	public Vector3 m_originalPosition;
 	public Camera m_camera;
 
@@ -53,10 +55,14 @@ public abstract class Weapon : MonoBehaviour
 	//탄피
 	public Transform m_casingPoint;
 
-	//오브젝트풀링
-	//public GameObjectPool<GameObject> m_casingObjPool;
-	//public GameObjectPool<GameObject> m_hitHoleObjPool;
-	//public GameObjectPool<GameObject> m_hitSparkObjPool;
+	public float m_originAccuracy;
+	public float m_accuracy;
+	public float m_power;
+	public float m_beforeAccuracy;
+
+	//레드도트 및 사이트
+	public bool m_isSightAttached;
+	public GameObject m_attachedSight;
 
 	public abstract void Fire();
 	public abstract void Reload();
@@ -66,4 +72,7 @@ public abstract class Weapon : MonoBehaviour
 	public abstract void RecoilBack();
 	public abstract void StopFiring();
 	public abstract void CasingEffect();
+	public abstract void JumpAccuracy(bool j);
+	public abstract void CrouchAccuracy(bool c);
+
 }
