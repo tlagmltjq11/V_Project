@@ -19,12 +19,13 @@ public class FSM <T>  : MonoBehaviour
 	//	각 상태의 Idle 처리..
 	protected void  FSMUpdate() 
 	{ 
-		if (currentState != null) currentState.Execute(owner); 
+		if (currentState != null) currentState.Execute(owner);
+		Debug.Log(currentState);
 	}
 
 	//	상태 변경..
 	public void  ChangeState(IFSMState<T> newState)
-	{	
+	{
 		previousState = currentState;
  
 		if (currentState != null)

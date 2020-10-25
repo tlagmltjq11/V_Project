@@ -4,28 +4,30 @@ using UnityEngine;
 
 public class CameraRotate : MonoBehaviour
 {
+    #region Field
+    #region References
     [SerializeField]
     GameObject m_player;
     [SerializeField]
     GameObject m_verticalCamRotate;
-    Vector2 m_mouseDir = Vector2.zero;
+    #endregion
+    #region Mouse Info
     public float mouseSensitivity = 400f;
+    #endregion
+    #region About Mouse Rotate
+    Vector2 m_mouseDir = Vector2.zero;
     public float xRotation = 0f;
-    // Start is called before the first frame update
+    #endregion
+    #endregion
 
+    #region Unity Methods
     private void Awake()
     {
+        //시작할때 커서 안보이게 설정.
         Cursor.lockState = CursorLockMode.Locked;
-
         Cursor.visible = false;
     }
 
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -36,7 +38,9 @@ public class CameraRotate : MonoBehaviour
 
         MouseLook();
     }
+    #endregion
 
+    #region Private Methods
     void MouseLook()
     {
         m_mouseDir.x = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
@@ -47,9 +51,12 @@ public class CameraRotate : MonoBehaviour
         m_verticalCamRotate.transform.localRotation = Quaternion.Slerp(m_verticalCamRotate.transform.localRotation, Quaternion.Euler(xRotation, 0, 0), Time.deltaTime * 35f);
         m_player.transform.Rotate(Vector3.up * m_mouseDir.x);
     }
+    #endregion
 
+    #region Public Methods
     public void VerticalCamRotate(float recoilRotX)
     {
         xRotation -= recoilRotX;
     }
+    #endregion
 }

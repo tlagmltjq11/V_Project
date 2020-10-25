@@ -6,18 +6,14 @@ public class HealthController : MonoBehaviour
 {
     float m_hp;
 
-    // Start is called before the first frame update
+    #region Unity Methods
     void Start()
     {
         m_hp = 100f;
     }
+    #endregion
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
+    #region Public Methods
     public void Damaged(float dmg)
     {
         if(m_hp - dmg <= 0f)
@@ -37,5 +33,6 @@ public class HealthController : MonoBehaviour
             m_hp = m_hp - dmg;
         }
     }
+    #endregion
 
 }

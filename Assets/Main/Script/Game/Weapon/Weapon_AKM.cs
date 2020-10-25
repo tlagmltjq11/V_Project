@@ -1,44 +1,70 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class Weapon_AKM : Weapon
 {
-	public enum eAudioClip
+    #region Field
+	//Enums
+    public enum eAudioClip
 	{
 		FIRE,
 		RELOAD,
+		DRAW,
 		Max
 	}
+    #endregion
 
-    void OnEnable()
+    #region Unity Methods
+    private void OnEnable()
     {
-		//m_stateManager.SetCurrentWeapon(this);
-    }
-
-    void OnDisable()
-    {
-        
-    }
-
-    // Use this for initialization
-    void Start()
-	{
-		m_currentBullets = m_bulletsPerMag;
-		m_anim = GetComponent<Animator>();
-
-		m_stateManager = m_player.GetComponent<Player_StateManager>();
-		m_cameraRotate = m_camera.GetComponent<CameraRotate>();
-		Init();
+		m_anim.CrossFadeInFixedTime("DRAW", 0.01f);
+		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.DRAW]);
 	}
 
-    // Update is called once per frame
+    private void OnDisable()
+    {
+		if(m_stateManager.m_crossHair != null)
+        {
+			m_stateManager.m_crossHair.SetActive(true);
+		}
+
+		if (m_isAiming)
+        {
+			AimOut();
+
+			transform.localPosition = m_originalPosition;
+			m_camera.fieldOfView = 60f;
+		}
+
+		//수정사항*******************************************
+		if(m_isReloading || m_isDrawing)
+		{
+			transform.localPosition = m_originalPosition;
+		}
+    }
+
+    private void Awake()
+    {
+		m_anim = GetComponent<Animator>();
+	}
+
+    void Start()
+	{
+		Init();
+		m_stateManager = m_player.GetComponent<Player_StateManager>();
+		m_cameraRotate = m_camera.GetComponent<CameraRotate>();
+	}
+
     void Update()
     {
         m_info = m_anim.GetCurrentAnimatorStateInfo(0);
         m_isReloading = m_info.IsName("RELOAD");
+		m_isDrawing = m_info.IsName("DRAW");
 
-        if (m_isAiming)
+
+		if (m_isAiming)
         {
 			if(m_isSightAttached)
             {
@@ -59,8 +85,10 @@ public class Weapon_AKM : Weapon
 
 		RecoilBack();
 	}
+    #endregion
 
-	public void Init()
+    #region Private Methods
+    private void Init()
 	{
 		// Weapon Specification
 		m_weaponName = "AKM";
@@ -69,22 +97,23 @@ public class Weapon_AKM : Weapon
 		m_currentBullets = 30;
 		m_range = 100f;
 		m_fireRate = 0.1f;
-
 		m_recoilAmount = 1f;
-		m_recoilAim = 0.1f;
 		m_recoilVert = 1.2f;
 		m_recoiltHoriz = 0.4f;
 		m_recoilKickBack = new Vector3(0.1f, 0.25f, -0.5f);
 		m_originAccuracy = 0.015f;
-		m_accuracy = m_originAccuracy;
 		m_power = 25f;
 
-		m_isFiring = false;
-
+		m_accuracy = m_originAccuracy;
 		m_originalPosition = transform.localPosition;
-	}
+		m_currentBullets = m_bulletsPerMag;
 
-	public override void Fire()
+		m_isFiring = false;
+	}
+    #endregion
+
+    #region Abstract Methods Implement
+    public override void Fire()
 	{
 		if (m_fireTimer < m_fireRate)
 		{
@@ -146,11 +175,28 @@ public class Weapon_AKM : Weapon
 		CasingEffect();
 	}
 
-    public override void AimIn()
+	public override void StopFiring()
+	{
+		m_recoilVert = 1.2f;
+		m_recoiltHoriz = 0.65f;
+	}
+
+	public override void Reload()
+	{
+		if (m_currentBullets == m_bulletsPerMag || m_bulletsRemain == 0)
+		{
+			return;
+		}
+
+		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.RELOAD]);
+		m_anim.CrossFadeInFixedTime("RELOAD", 0.01f);
+	}
+
+	public override void AimIn()
 	{
 		m_anim.SetBool("ISAIM", true);
 
-		if (m_attachedSight.activeSelf)
+		if (m_attachedSight.activeSelf && m_attachedSight != null)
 		{
 			m_isSightAttached = true;
 		}
@@ -162,6 +208,8 @@ public class Weapon_AKM : Weapon
 		m_isAiming = true;
 
 		m_accuracy = m_accuracy / 4f;
+
+		m_stateManager.m_crossHair.SetActive(false);
 	}
 
 	public override void AimOut()
@@ -181,6 +229,55 @@ public class Weapon_AKM : Weapon
         {
 			m_accuracy = m_originAccuracy;
 		}
+
+		if(m_stateManager.m_crossHair != null)
+        {
+			m_stateManager.m_crossHair.SetActive(true);
+		}
+	}
+
+	public override void Recoil()
+	{
+		Vector3 HorizonCamRecoil = new Vector3(0f, Random.Range(-m_recoiltHoriz, m_recoiltHoriz), 0f);
+		Vector3 VerticalCamRecoil = new Vector3(-m_recoilVert, 0f, 0f);
+
+		if (!m_isAiming)
+		{
+			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x), m_recoilKickBack.y, m_recoilKickBack.z);
+			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
+
+			m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(m_horizonCamRecoil.transform.localEulerAngles + HorizonCamRecoil), m_recoilAmount);
+			m_cameraRotate.VerticalCamRotate(-VerticalCamRecoil.x); //현재 이걸로 수직반동 올리는 중임.
+		}
+		else
+		{
+			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x) / 2f, 0, m_recoilKickBack.z);
+			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
+
+			m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(m_horizonCamRecoil.transform.localEulerAngles + HorizonCamRecoil / 1.5f), m_recoilAmount);
+			m_cameraRotate.VerticalCamRotate(-VerticalCamRecoil.x / 2f); //현재 이걸로 수직반동 올리는 중임.
+		}
+	}
+
+	public override void RecoilBack()
+	{
+		m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(0f, 0f, 0f), Time.deltaTime * 3f);
+	}
+
+	public override void CasingEffect()
+	{
+		Quaternion randomQuaternion = new Quaternion(Random.Range(0f, 360f), Random.Range(0f, 360f), Random.Range(0f, 360f), 1);
+		var casing = GunEffectObjPool.Instance.m_casingPool.Get();
+
+		casing.transform.SetParent(m_casingPoint);
+		casing.transform.localPosition = new Vector3(-1f, -3.5f, 0f);
+		casing.transform.localScale = new Vector3(25, 25, 25);
+		casing.transform.localRotation = Quaternion.identity;
+
+		casing.gameObject.GetComponent<Rigidbody>().isKinematic = false;
+		casing.gameObject.SetActive(true);
+		casing.gameObject.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(Random.Range(50f, 100f), Random.Range(50f, 100f), Random.Range(-10f, 20f)));
+		casing.gameObject.GetComponent<Rigidbody>().MoveRotation(randomQuaternion.normalized);
 	}
 
 	public override void JumpAccuracy(bool j)
@@ -220,19 +317,10 @@ public class Weapon_AKM : Weapon
 			}
 		}
     }
+    #endregion
 
-    public override void Reload()
-    {
-		if (m_currentBullets == m_bulletsPerMag || m_bulletsRemain == 0)
-        {
-			return;
-        }
-
-		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.RELOAD]);
-		m_anim.CrossFadeInFixedTime("RELOAD", 0.01f);
-	}
-
-	public void ReloadComplete()
+    #region Public Methods
+    public void ReloadComplete()
     {
 		int temp = 0;
 
@@ -251,48 +339,5 @@ public class Weapon_AKM : Weapon
 
 		m_stateManager.m_bulletText.text = m_stateManager.m_currentWeapon.m_currentBullets + " / " + m_stateManager.m_currentWeapon.m_bulletsRemain;
 	}
-
-    public override void Recoil()
-    {
-		Vector3 HorizonCamRecoil = new Vector3(0f, Random.Range(-m_recoiltHoriz, m_recoiltHoriz), 0f);
-		Vector3 VerticalCamRecoil = new Vector3(-m_recoilVert, 0f, 0f);
-
-		if (!m_isAiming)
-        {
-			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x), m_recoilKickBack.y, m_recoilKickBack.z);
-			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
-
-			m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(m_horizonCamRecoil.transform.localEulerAngles + HorizonCamRecoil), m_recoilAmount);
-			m_cameraRotate.VerticalCamRotate(-VerticalCamRecoil.x); //현재 이걸로 수직반동 올리는 중임.
-		}
-		else
-        {
-			Vector3 gunRecoil = new Vector3(Random.Range(-m_recoilKickBack.x, m_recoilKickBack.x) / 2f, 0, m_recoilKickBack.z);
-			transform.localPosition = Vector3.Lerp(transform.localPosition, transform.localPosition + gunRecoil, m_recoilAmount);
-
-			m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(m_horizonCamRecoil.transform.localEulerAngles + HorizonCamRecoil / 1.5f), m_recoilAmount);
-			m_cameraRotate.VerticalCamRotate(-VerticalCamRecoil.x / 2f); //현재 이걸로 수직반동 올리는 중임.
-		}
-	}
-
-	public override void RecoilBack()
-    {
-		m_horizonCamRecoil.transform.localRotation = Quaternion.Slerp(m_horizonCamRecoil.transform.localRotation, Quaternion.Euler(0f, 0f, 0f), Time.deltaTime * 3f);
-	}
-
-	public override void StopFiring()
-    {
-		m_recoilVert = 1.2f;
-		m_recoiltHoriz = 0.65f;
-	}
-
-    public override void CasingEffect()
-    {
-		Quaternion randomQuaternion = new Quaternion(Random.Range(0f, 360f), Random.Range(0f, 360f), Random.Range(0f, 360f), 1);
-		var casing = GunEffectObjPool.Instance.m_casingPool.Get();
-		casing.gameObject.GetComponent<Rigidbody>().isKinematic = false;
-		casing.gameObject.SetActive(true);
-		casing.gameObject.GetComponent<Rigidbody>().AddRelativeForce(new Vector3(Random.Range(50f, 100f), Random.Range(50f, 100f), Random.Range(-10f, 20f)));
-		casing.gameObject.GetComponent<Rigidbody>().MoveRotation(randomQuaternion.normalized);
-	}
+	#endregion
 }

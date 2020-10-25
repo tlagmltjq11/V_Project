@@ -5,18 +5,20 @@ using UnityEngine.UI;
 
 public class PlayerHealthController : MonoBehaviour
 {
-    float m_hp;
-    [SerializeField]
+    #region Field
+    //References
     public Text m_HpText;
+    //Player Info
+    float m_hp;
+    #endregion
 
-    // Start is called before the first frame update
+    #region Unity Methods
     void Start()
     {
         m_hp = 100f;
         m_HpText.text = m_hp.ToString();
     }
 
-    // Update is called once per frame
     void Update()
     {
         if(Input.GetKeyDown(KeyCode.K))
@@ -24,7 +26,9 @@ public class PlayerHealthController : MonoBehaviour
             Damaged(Random.Range(5, 20));
         }
     }
+    #endregion
 
+    #region Public Methods
     public void Damaged(float dmg)
     {
         if (m_hp - dmg <= 0f)
@@ -39,4 +43,5 @@ public class PlayerHealthController : MonoBehaviour
 
         m_HpText.text = m_hp.ToString();
     }
+    #endregion
 }
