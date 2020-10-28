@@ -112,12 +112,12 @@ public class Player_MOVE : FSMSingleton<Player_MOVE>, IFSMState<Player_StateMana
             if (e.m_isLeanQ)
             {
                 //부모 오브젝트와의 로컬위치를 조절시켜서 RotateAround처럼 동작하게함.
-                e.m_upperBodyLean.transform.localRotation = Quaternion.Slerp(e.m_upperBodyLean.transform.localRotation, Quaternion.Euler(new Vector3(0f, 0f, 15f)), Time.deltaTime * 7f);
+                e.m_upperBodyLean.transform.localRotation = Quaternion.Slerp(e.m_upperBodyLean.transform.localRotation, Quaternion.Euler(new Vector3(0f, 0f, 10f)), Time.deltaTime * 7f);
             }
 
             if (e.m_isLeanE)
             {
-                e.m_upperBodyLean.transform.localRotation = Quaternion.Slerp(e.m_upperBodyLean.transform.localRotation, Quaternion.Euler(new Vector3(0f, 0f, -15f)), Time.deltaTime * 7f);
+                e.m_upperBodyLean.transform.localRotation = Quaternion.Slerp(e.m_upperBodyLean.transform.localRotation, Quaternion.Euler(new Vector3(0f, 0f, -10f)), Time.deltaTime * 7f);
             }
         }
         else
@@ -147,23 +147,27 @@ public class Player_MOVE : FSMSingleton<Player_MOVE>, IFSMState<Player_StateMana
                 e.m_charCon.Move(e.m_moveDir * e.m_walkSpeed * Time.deltaTime);
                 e.m_footstepCycle = 0.78f;
                 e.m_gunMoveSpeed = 0.33f;
+                e.m_footstepVolume = 0.3f;
             }
             else if (e.m_isCrouching)
             {
                 e.m_charCon.Move(e.m_moveDir * e.m_crouchSpeed * Time.deltaTime);
                 e.m_footstepCycle = 0.65f;
                 e.m_gunMoveSpeed = 0.4f;
+                e.m_footstepVolume = 0.6f;
             }
             else if(e.m_isRunning)
             {
                 e.m_charCon.Move(e.m_moveDir * e.m_runSpeed * Time.deltaTime);
                 e.m_footstepCycle = 0.3f;
+                e.m_footstepVolume = 1f;
             }
             else
             {
                 e.m_charCon.Move(e.m_moveDir * e.m_normalSpeed * Time.deltaTime);
                 e.m_footstepCycle = 0.5f;
                 e.m_gunMoveSpeed = 0.5f;
+                e.m_footstepVolume = 0.8f;
             }
 
             if(!e.m_isRunning)
@@ -180,7 +184,7 @@ public class Player_MOVE : FSMSingleton<Player_MOVE>, IFSMState<Player_StateMana
                 if (e.m_isGrounded)
                 {
                     e.m_audioSource.clip = e.m_audioClip[0];
-                    e.m_audioSource.PlayOneShot(e.m_audioSource.clip);
+                    e.m_audioSource.PlayOneShot(e.m_audioSource.clip, e.m_footstepVolume);
 
                     AudioClip temp = e.m_audioClip[0];
                     e.m_audioClip[0] = e.m_audioClip[1];

@@ -8,7 +8,7 @@ public class Player_StateManager : FSM<Player_StateManager>
     //상태들의 변수를 매니저에 전부 때려박는 이유는 상태들이 싱글턴이기 때문에 전역으로 관리되는데, 거기서 변수를 관리해버리면
     //해당 상태를 사용하는 모든 유닛들의 변수값이 같이 바뀌게 되기 때문에, 각자 유닛들의 매니저에서 변수를 관리해야하는것임.
     //상태클래스는 오직 하는 일만!★★★
-    #region Public Field
+    #region Field
     #region Enums
     //enums
     public enum eAudioClip
@@ -17,6 +17,10 @@ public class Player_StateManager : FSM<Player_StateManager>
         STEP2,
         JUMP,
         LAND,
+        GRUNT1,
+        GRUNT2,
+        GRUNT3,
+        GRUNT4,
         Max
     }
 
@@ -38,6 +42,8 @@ public class Player_StateManager : FSM<Player_StateManager>
     public Weapon m_currentWeapon;
     public Text m_bulletText;
     public Text m_curWeaponText;
+    public Text m_HpText;
+    public Image m_bloodScreen;
     public GameObject m_crossHair;
     public AudioClip[] m_audioClip;
     public AudioSource m_audioSource;
@@ -45,6 +51,7 @@ public class Player_StateManager : FSM<Player_StateManager>
     #endregion
     #region Player Info
     //Player Info
+    float m_hp = 100;
     public float m_runSpeed = 5f;
     public float m_walkSpeed = 1.5f;
     public float m_crouchSpeed = 2.5f;
@@ -67,6 +74,7 @@ public class Player_StateManager : FSM<Player_StateManager>
     public LayerMask m_groundMask;
     public float m_footstepTimer;
     public float m_footstepCycle;
+    public float m_footstepVolume;
     public bool m_PreviouslyGrounded;
     public float m_gunMoveSpeed;//움직일때 총 좌우로 흔들리는 속도조절.
     #endregion
@@ -198,6 +206,7 @@ public class Player_StateManager : FSM<Player_StateManager>
         m_isLeanQ = false;
         m_isLeanE = false;
         m_isLeanDouble = false;
+
         // Default Weapon Setting.
         for (int i=0; i<m_weapons.Length; i++)
         {
@@ -207,6 +216,8 @@ public class Player_StateManager : FSM<Player_StateManager>
         m_WPType = eWeaponType.AR;
         SetCurrentWeapon(m_weapons[0].GetComponent<Weapon>());
         // Default Weapon Setting END
+
+        m_HpText.text = m_hp.ToString();
     }
 
     void SetCurrentWeapon(Weapon weapon)
@@ -230,6 +241,44 @@ public class Player_StateManager : FSM<Player_StateManager>
         m_weapons[newWeapon].SetActive(true);
         m_WPType = (eWeaponType)newWeapon;
         SetCurrentWeapon(m_weapons[newWeapon].GetComponent<Weapon>());
+    }
+    #endregion
+
+    #region Public Methods
+    public void Damaged(float dmg)
+    {
+        if(m_hp <= 0f)
+        {
+            return;
+        }
+
+        if (m_hp - dmg <= 0f)
+        {
+            m_hp = 0f;
+            ChangeState(Player_DIE.Instance);
+        }
+        else
+        {
+            m_hp = m_hp - dmg;
+            m_audioSource.PlayOneShot(m_audioClip[Random.Range((int)eAudioClip.GRUNT1, (int)eAudioClip.Max)], 0.4f);
+            StartCoroutine(bloodScreen(dmg * 12.5f));
+        }
+
+        m_HpText.text = m_hp.ToString();
+    }
+    #endregion
+
+    #region Coroutine
+    IEnumerator bloodScreen(float a)
+    {
+        for (float i = a; i >= 0; i -= 1f)
+        {
+            Color color = new Vector4(m_bloodScreen.color.r, m_bloodScreen.color.g, m_bloodScreen.color.b, i/255f);
+            m_bloodScreen.color = color;
+            yield return 0;
+        }
+
+        yield break;
     }
     #endregion
 }

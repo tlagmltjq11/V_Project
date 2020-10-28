@@ -12,6 +12,9 @@ public class Weapon_GLOCK : Weapon
 		FIRE,
 		RELOAD,
 		DRAW,
+		AIMIN,
+		HIT,
+		HEADSHOT,
 		Max
 	}
     #endregion
@@ -20,7 +23,7 @@ public class Weapon_GLOCK : Weapon
     private void OnEnable()
     {
 		m_anim.CrossFadeInFixedTime("DRAW", 0.01f);
-		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.DRAW]);
+		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.DRAW], 0.8f);
 	}
 
     private void OnDisable()
@@ -118,6 +121,8 @@ public class Weapon_GLOCK : Weapon
 			return;
 		}
 
+		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.FIRE], 0.8f);
+
 		RaycastHit hit;
 
 		int layerMask = ((1 << LayerMask.NameToLayer("Player")) | (1 << LayerMask.NameToLayer("Sfx")));
@@ -125,38 +130,56 @@ public class Weapon_GLOCK : Weapon
 
 		if (Physics.Raycast(m_shootPoint.position, m_shootPoint.transform.forward + Random.onUnitSphere * m_accuracy, out hit, m_range, layerMask))
 		{
-			var hitHole = GunEffectObjPool.Instance.m_hitHoleObjPool.Get();
-			hitHole.gameObject.transform.position = hit.point;
-			hitHole.gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
-			hitHole.transform.SetParent(hit.transform); // 탄흔이 오브젝트를 따라가게끔 유도하기 위해 리턴되기 전까지만 부모로 지정
-			hitHole.gameObject.SetActive(true);
+			if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Enemy"))
+			{
+				var blood = GunEffectObjPool.Instance.m_bloodPool.Get();
+				blood.gameObject.transform.position = hit.point;
+				blood.gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
+				blood.gameObject.SetActive(true);
 
-			var hitSpark = GunEffectObjPool.Instance.m_hitSparkPool.Get();
-			hitSpark.gameObject.transform.position = hit.point;
-			hitSpark.gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
-			hitSpark.gameObject.SetActive(true);
+				Enemy_StateManager enemy = hit.transform.GetComponentInParent<Enemy_StateManager>();
 
-			if (hit.transform.gameObject.layer.Equals(LayerMask.NameToLayer("Interactable")))
-            {
-				Rigidbody rig = hit.transform.GetComponent<Rigidbody>();
-				
-				if(rig)
-                {
-					rig.AddForceAtPosition(m_shootPoint.forward * m_power * 5f, m_shootPoint.position);
-				}					
-            }
+				if (enemy)
+				{
+					if (hit.collider.name.Equals("swat:HeadTop_End"))
+					{
+						m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.HEADSHOT], 5f);
+						enemy.Damaged(m_power * 100f);
+					}
+					else
+					{
+						m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.HIT], 3f);
+						enemy.Damaged(m_power);
+					}
+				}
+			}
+			else
+			{
+				var hitHole = GunEffectObjPool.Instance.m_hitHoleObjPool.Get();
+				hitHole.gameObject.transform.position = hit.point;
+				hitHole.gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
+				hitHole.transform.SetParent(hit.transform); // 탄흔이 오브젝트를 따라가게끔 유도하기 위해 리턴되기 전까지만 부모로 지정
+				hitHole.gameObject.SetActive(true);
 
-			HealthController enemy = hit.transform.GetComponent<HealthController>();
+				var hitSpark = GunEffectObjPool.Instance.m_hitSparkPool.Get();
+				hitSpark.gameObject.transform.position = hit.point;
+				hitSpark.gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
+				hitSpark.gameObject.SetActive(true);
 
-			if(enemy)
-            {
-				enemy.Damaged(m_power);
+				if (hit.transform.gameObject.layer.Equals(LayerMask.NameToLayer("Interactable")))
+				{
+					Rigidbody rig = hit.transform.GetComponent<Rigidbody>();
+
+					if (rig)
+					{
+						rig.AddForceAtPosition(m_shootPoint.forward * m_power * 5f, m_shootPoint.position);
+					}
+				}
 			}
 		}
 
 		m_currentBullets--;
 		m_fireTimer = 0.0f;
-		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.FIRE]);
 		m_anim.CrossFadeInFixedTime("FIRE", 0.01f);
 
 		muzzleFlash.Play();
@@ -198,6 +221,7 @@ public class Weapon_GLOCK : Weapon
 		m_accuracy = m_accuracy / 4f;
 
 		m_stateManager.m_crossHair.SetActive(false);
+		m_audioSource.PlayOneShot(m_audioClip[(int)eAudioClip.AIMIN], 3.5f);
 	}
 
 	public override void AimOut()
@@ -218,7 +242,10 @@ public class Weapon_GLOCK : Weapon
 			m_accuracy = m_originAccuracy;
 		}
 
-		m_stateManager.m_crossHair.SetActive(true);
+		if (m_stateManager.m_crossHair != null)
+		{
+			m_stateManager.m_crossHair.SetActive(true);
+		}
 	}
 
     public override void Recoil()

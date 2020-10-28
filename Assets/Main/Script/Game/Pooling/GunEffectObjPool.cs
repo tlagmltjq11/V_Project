@@ -10,11 +10,13 @@ public class GunEffectObjPool : SingletonMonoBehaviour<GunEffectObjPool>
     public GameObject m_hitHolePrefab;
     public GameObject m_hitSparkPrefab;
     public GameObject m_casingPrefab;
+    public GameObject m_bloodPrefab;
     #endregion
     #region About Pooling
     public GameObjectPool<ReturnHitHole> m_hitHoleObjPool;
     public GameObjectPool<ReturnHitSpark> m_hitSparkPool;
     public GameObjectPool<ReturnCasing> m_casingPool;
+    public GameObjectPool<ReturnBloodSFX> m_bloodPool;
     #endregion
     #endregion
 
@@ -27,6 +29,15 @@ public class GunEffectObjPool : SingletonMonoBehaviour<GunEffectObjPool>
             var obj = Instantiate(m_hitSparkPrefab) as GameObject;
             obj.transform.SetParent(gameObject.transform);
             var script = obj.GetComponent<ReturnHitSpark>();
+
+            return script;
+        });
+
+        m_bloodPool = new GameObjectPool<ReturnBloodSFX>(10, () =>
+        {
+            var obj = Instantiate(m_bloodPrefab) as GameObject;
+            obj.transform.SetParent(gameObject.transform);
+            var script = obj.GetComponent<ReturnBloodSFX>();
 
             return script;
         });

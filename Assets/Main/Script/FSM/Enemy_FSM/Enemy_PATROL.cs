@@ -10,6 +10,7 @@ public class Enemy_PATROL : FSMSingleton<Enemy_PATROL>, IFSMState<Enemy_StateMan
     {
         e.m_navAgent.stoppingDistance = 0.5f;
         e.m_navAgent.speed = 1f;
+        e.m_footstepCycle = 0.8f;
     }
 
     //  상태 진행..
@@ -36,6 +37,22 @@ public class Enemy_PATROL : FSMSingleton<Enemy_PATROL>, IFSMState<Enemy_StateMan
             }
             else
             {
+                #region Footstep
+                e.m_footstepTimer += Time.deltaTime;
+
+                if (e.m_footstepTimer > e.m_footstepCycle)
+                {
+                    e.m_audioSource.clip = e.m_audioClip[0];
+                    e.m_audioSource.PlayOneShot(e.m_audioSource.clip);
+
+                    AudioClip temp = e.m_audioClip[0];
+                    e.m_audioClip[0] = e.m_audioClip[1];
+                    e.m_audioClip[1] = temp;
+
+                    e.m_footstepTimer = 0f;
+                }
+                #endregion
+
                 if (e.m_navAgent.remainingDistance <= e.m_navAgent.stoppingDistance)
                 {
                     e.m_navAgent.ResetPath();
@@ -54,5 +71,6 @@ public class Enemy_PATROL : FSMSingleton<Enemy_PATROL>, IFSMState<Enemy_StateMan
     {
         e.m_navAgent.ResetPath();
         e.m_anim.SetBool("ISWALK", false);
+        e.m_footstepCycle = 0f;
     }
 }

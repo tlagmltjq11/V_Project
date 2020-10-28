@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ReturnHitSpark : MonoBehaviour
+public class ReturnBloodSFX : MonoBehaviour
 {
     public bool m_ifFirstEnable = true;
 
@@ -11,7 +11,7 @@ public class ReturnHitSpark : MonoBehaviour
     {
         if (!m_ifFirstEnable)
         {
-            Invoke("ReturnToPool", 0.5f);
+            Invoke("ReturnToPool", 0.2f);
         }
 
         m_ifFirstEnable = false;
@@ -26,7 +26,7 @@ public class ReturnHitSpark : MonoBehaviour
     #region Private Methods
     private void ReturnToPool()
     {
-        GunEffectObjPool.Instance.m_hitSparkPool.Set(this);
+        GunEffectObjPool.Instance.m_bloodPool.Set(this);
         gameObject.SetActive(false);
     }
     #endregion

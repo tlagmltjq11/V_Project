@@ -20,7 +20,6 @@ public class FSM <T>  : MonoBehaviour
 	protected void  FSMUpdate() 
 	{ 
 		if (currentState != null) currentState.Execute(owner);
-		Debug.Log(currentState);
 	}
 
 	//	상태 변경..
